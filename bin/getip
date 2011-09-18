@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# check the config file. all the secret stuff goes in there.
+# the getip.cfg should look something like this...
+#
+#  cfg_url="myurl.com/ip.html"
+#  cfg_user="username"
+#  cfg_pass="pa55werd"
+#  cfg_host="myurl.com"
+#  cfg_email="my.email@gmail.com"
+#
+source getip.cfg
+
+# grab my current 
+STAMP=`date +%Y%m%d%H%M%S`
+wget -q -O - checkip.dyndns.org | sed -e 's/.*Current IP Address: //' -e 's/<.*$//' > /tmp/$STAMP.ip
+
+CUR=`cat /tmp/$STAMP.ip`
+OLD=`wget -q -O - $cfg_url`
+if [[ $CUR != $OLD ]]
+then
+ USER=$cfg_user
+ PASS=$cfg_pass
+ HOST=$cfg_host
+ wput --ascii --disable-tls /tmp/$STAMP.ip ftp://$USER:$PASS@$HOST/$cfg_url
+ echo "$CUR\n" | mail -s "your new ip: $CUR" $cfg_email
+else
+ echo "ip unchanged: $CUR"
+fi
