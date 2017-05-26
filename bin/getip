@@ -43,7 +43,7 @@ then
         echo "failed to upload to: $cfg_ftpurl"
         exit
     fi
-    echo "$CUR\n" | mail -s "your new ip: $CUR" $cfg_email
+    echo "$CUR" | mail -s "your new ip: $CUR" $cfg_email
 else
     echo "ip unchanged: $CUR"
 fi
