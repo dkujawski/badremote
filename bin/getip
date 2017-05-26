@@ -9,21 +9,41 @@
 #  cfg_host="myurl.com"
 #  cfg_email="my.email@gmail.com"
 #
-source getip.cfg
+if [ -z $1 ]
+then 
+    CFG=~/getip.cfg
+else
+    CFG=$1
+fi
+
+source $CFG
+
+if [ $? -ne 0 ] 
+then
+    echo "config file not found: $CFG"
+    exit 
+fi
 
 # grab my current 
 STAMP=`date +%Y%m%d%H%M%S`
-wget -q -O - checkip.dyndns.org | sed -e 's/.*Current IP Address: //' -e 's/<.*$//' > /tmp/$STAMP.ip
+echo "requesting cur ip address..."
+curl -m $cfg_timeout -XGET checkip.dyndns.org 2> /dev/null | sed -e 's/.*Current IP Address: //' -e 's/<.*$//' > /tmp/$STAMP.ip
 
 CUR=`cat /tmp/$STAMP.ip`
-OLD=`wget -q -O - $cfg_url`
+echo "requesting prev ip address..."
+OLD=`curl -m $cfg_timeout -XGET $cfg_url 2> /dev/null`
 if [[ $CUR != $OLD ]]
 then
- USER=$cfg_user
- PASS=$cfg_pass
- HOST=$cfg_host
- wput --ascii --disable-tls /tmp/$STAMP.ip ftp://$USER:$PASS@$HOST/$cfg_url
- echo "$CUR\n" | mail -s "your new ip: $CUR" $cfg_email
+    USER=$cfg_user
+    PASS=$cfg_pass
+    HOST=$cfg_host
+    curl -T /tmp/$STAMP.ip $cfg_ftpurl --user $USER:$PASS 2> /dev/null
+    if [ $? -ne 0 ]
+    then
+        echo "failed to upload to: $cfg_ftpurl"
+        exit
+    fi
+    echo "$CUR\n" | mail -s "your new ip: $CUR" $cfg_email
 else
- echo "ip unchanged: $CUR"
+    echo "ip unchanged: $CUR"
 fi
